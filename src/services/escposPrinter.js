@@ -4,14 +4,14 @@ const CiaEscPos = registerPlugin('CiaEscPos');
 
 const ensureNative = () => {
   if (!Capacitor.isNativePlatform()) {
-    const error = new Error('Реальная ESC/POS печать доступна в Android-приложении CIA POS Lite. В браузере можно только настроить принтер.');
+    const error = new Error('Реальная ESC/POS печать и поиск принтеров доступны в Android-приложении CIA POS Lite. В браузере можно только настроить принтер вручную.');
     error.code = 'NATIVE_REQUIRED';
     throw error;
   }
 };
 
 const normalizePrinter = (printer) => ({
-  host: String(printer?.ip || '').trim(),
+  host: String(printer?.ip || printer?.host || '').trim(),
   port: Number(printer?.port || 9100),
   paper: Number(printer?.paper || 80),
   autoCut: printer?.autoCut !== false,
@@ -20,6 +20,25 @@ const normalizePrinter = (printer) => ({
 const formatDateTime = (value = new Date()) => new Intl.DateTimeFormat('ru-RU', {
   year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
 }).format(value);
+
+export async function discoverPrinters({ port = 9100, timeoutMs = 220 } = {}) {
+  ensureNative();
+  const result = await CiaEscPos.discoverPrinters({ port: Number(port), timeoutMs: Number(timeoutMs) });
+  return (result?.devices || []).map((device) => ({
+    name: device.name || 'ESC/POS',
+    ip: device.host,
+    host: device.host,
+    port: Number(device.port || port),
+    transport: device.transport || 'LAN',
+    protocol: device.protocol || 'ESC/POS',
+    verified: Boolean(device.verified),
+    paper: '80',
+    autoCut: true,
+    precheck: true,
+    bar: false,
+    kitchen: false,
+  }));
+}
 
 export async function printTest(printer) {
   ensureNative();
