@@ -16,6 +16,33 @@ class CiaEscPosPlugin : Plugin() {
     private val executor = Executors.newSingleThreadExecutor()
 
     @PluginMethod
+    fun discoverPrinters(call: PluginCall) {
+        executor.execute {
+            try {
+                val port = call.getInt("port", 9100) ?: 9100
+                val timeoutMs = call.getInt("timeoutMs", 220) ?: 220
+                val service = PrinterDiscoveryService(context)
+                val found = service.scan(port = port, timeoutMs = timeoutMs.coerceIn(100, 1000))
+                val devices = JSArray()
+                found.forEach { printer ->
+                    devices.put(
+                        JSObject()
+                            .put("name", "ESC/POS")
+                            .put("host", printer.host)
+                            .put("port", printer.port)
+                            .put("transport", printer.transport)
+                            .put("protocol", printer.protocol)
+                            .put("verified", false)
+                    )
+                }
+                call.resolve(JSObject().put("devices", devices).put("count", found.size))
+            } catch (e: Exception) {
+                call.reject(e.message ?: "Printer discovery failed", e)
+            }
+        }
+    }
+
+    @PluginMethod
     fun printTest(call: PluginCall) {
         executor.execute {
             try {
