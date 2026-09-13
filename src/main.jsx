@@ -1,176 +1,29 @@
-import React, { useMemo, useState } from 'react';
-import { createRoot } from 'react-dom/client';
-import {
-  Search, Minus, Plus, Banknote, CreditCard, QrCode, ReceiptText,
-  BarChart3, Package, Settings, Wifi, CheckCircle2, X, Menu,
-  ChevronLeft, Printer, UserPlus, MoreHorizontal, Trash2, ShoppingBag,
-  Users, ScanLine, Smartphone, WalletCards
-} from 'lucide-react';
-import './styles.css';
+import React,{useMemo,useState}from'react';
+import{createRoot}from'react-dom/client';
+import{Search,Minus,Plus,Banknote,CreditCard,QrCode,ReceiptText,BarChart3,Package,Settings,CheckCircle2,X,Menu,ChevronLeft,Printer,MoreHorizontal,Trash2,ShoppingBag,Users,ScanLine,WalletCards,Armchair}from'lucide-react';
+import'./styles.css';
 
-const PRODUCTS = [
-  { id: 1, name: 'Американо', price: 900, category: 'Кофе', emoji: '☕' },
-  { id: 2, name: 'Капучино', price: 1200, category: 'Кофе', emoji: '🥛' },
-  { id: 3, name: 'Латте', price: 1400, category: 'Кофе', emoji: '🧋' },
-  { id: 4, name: 'Вода', price: 500, category: 'Напитки', emoji: '💧' },
-  { id: 5, name: 'Кола 0.5', price: 700, category: 'Напитки', emoji: '🥤' },
-  { id: 6, name: 'Круассан', price: 1000, category: 'Еда', emoji: '🥐' },
-  { id: 7, name: 'Сэндвич', price: 2200, category: 'Еда', emoji: '🥪' },
-  { id: 8, name: 'Чизкейк', price: 1800, category: 'Десерты', emoji: '🍰' },
-  { id: 9, name: 'Печенье', price: 650, category: 'Десерты', emoji: '🍪' },
-  { id: 10, name: 'Сок', price: 800, category: 'Напитки', emoji: '🧃' },
-  { id: 11, name: 'Хот-дог', price: 1900, category: 'Еда', emoji: '🌭' },
-  { id: 12, name: 'Чай', price: 750, category: 'Чай', emoji: '🍵' },
-];
-
-const fmt = (value) => new Intl.NumberFormat('ru-RU').format(value) + ' ֏';
-
-function App() {
-  const [cart, setCart] = useState({
-    2: { ...PRODUCTS[1], qty: 1 },
-    6: { ...PRODUCTS[5], qty: 1 },
-  });
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('Все');
-  const [activeTab, setActiveTab] = useState('check');
-  const [catalogOpen, setCatalogOpen] = useState(false);
-  const [paymentOpen, setPaymentOpen] = useState(false);
-  const [paymentType, setPaymentType] = useState('cash');
-  const [success, setSuccess] = useState(false);
-  const [receiptPrint, setReceiptPrint] = useState(true);
-  const [serviceEnabled, setServiceEnabled] = useState(false);
-
-  const categories = useMemo(() => ['Все', ...new Set(PRODUCTS.map((p) => p.category))], []);
-  const filtered = PRODUCTS.filter((p) => {
-    const q = query.trim().toLowerCase();
-    return (category === 'Все' || p.category === category) && (!q || p.name.toLowerCase().includes(q));
-  });
-  const lines = Object.values(cart);
-  const itemCount = lines.reduce((sum, item) => sum + item.qty, 0);
-  const subtotal = lines.reduce((sum, item) => sum + item.qty * item.price, 0);
-  const service = serviceEnabled ? Math.round(subtotal * 0.1) : 0;
-  const total = subtotal + service;
-
-  const add = (product) => setCart((prev) => ({
-    ...prev,
-    [product.id]: { ...product, qty: (prev[product.id]?.qty || 0) + 1 },
-  }));
-
-  const changeQty = (id, delta) => setCart((prev) => {
-    const current = prev[id];
-    if (!current) return prev;
-    const nextQty = current.qty + delta;
-    const next = { ...prev };
-    if (nextQty <= 0) delete next[id];
-    else next[id] = { ...current, qty: nextQty };
-    return next;
-  });
-
-  const completePayment = () => {
-    if (!total) return;
-    setPaymentOpen(false);
-    setSuccess(true);
-    setTimeout(() => {
-      setSuccess(false);
-      setCart({});
-    }, 1800);
-  };
-
-  return <div className="cia-app">
-    <header className="cia-topbar">
-      <button className="top-icon" aria-label="Меню"><Menu size={22}/></button>
-      <div className="cia-logo"><strong>CIA POS</strong><span>light</span></div>
-      <div className="online-state"><i/> Онлайн</div>
-    </header>
-
-    <div className="workspace">
-      <section className="receipt-side">
-        <div className="receipt-tabs">
-          <button className={activeTab === 'check' ? 'active' : ''} onClick={() => setActiveTab('check')}>Чек</button>
-          <button className={activeTab === 'client' ? 'active' : ''} onClick={() => setActiveTab('client')}>Клиент</button>
-          <button className={activeTab === 'info' ? 'active' : ''} onClick={() => setActiveTab('info')}>Инфо</button>
-        </div>
-
-        {activeTab === 'check' && <>
-          <div className="receipt-title-row">
-            <div><span className="kicker">Текущий чек</span><h1>Продажа №1042</h1></div>
-            <button className="round-danger" onClick={() => setCart({})} aria-label="Очистить чек"><Trash2 size={18}/></button>
-          </div>
-
-          <div className="guest-card">
-            <div className="guest-head"><span>ГОСТЬ 1</span><button><Users size={17}/> 1</button></div>
-            <div className="line-head"><span>Наименование</span><span>Кол-во</span><span>Цена</span><span>Итого</span></div>
-            {lines.length === 0 ? <div className="empty-check"><ShoppingBag size={34}/><b>Чек пуст</b><span>Добавьте первый товар</span></div> : lines.map((item) => <div className="receipt-line" key={item.id}>
-              <div className="item-name"><div className="mini-art">{item.emoji}</div><div><b>{item.name}</b><small>{item.category}</small></div></div>
-              <div className="qty-stepper"><button onClick={() => changeQty(item.id, -1)}><Minus size={14}/></button><b>{item.qty}</b><button onClick={() => changeQty(item.id, 1)}><Plus size={14}/></button></div>
-              <span className="unit-price">{fmt(item.price)}</span>
-              <b className="row-total">{fmt(item.price * item.qty)}</b>
-            </div>)}
-          </div>
-
-          <button className="add-guest"><UserPlus size={19}/> ДОБАВИТЬ ГОСТЯ</button>
-          <button className="add-product" onClick={() => setCatalogOpen(true)}><Plus size={20}/> Добавить товар</button>
-
-          <div className="bill-options">
-            <label className="service-toggle"><span><b>Обслуживание 10%</b><small>Добавить сервисный сбор</small></span><input type="checkbox" checked={serviceEnabled} onChange={(e) => setServiceEnabled(e.target.checked)}/><i/></label>
-          </div>
-
-          <div className="totals-block">
-            <div><span>Сумма</span><b>{fmt(subtotal)}</b></div>
-            {serviceEnabled && <div><span>Обслуживание 10%</span><b>{fmt(service)}</b></div>}
-            <div className="to-pay"><span>К оплате</span><strong>{fmt(total)}</strong></div>
-          </div>
-
-          <div className="checkout-row">
-            <button className="square-action"><MoreHorizontal size={22}/></button>
-            <button className="square-action" onClick={() => total && alert('Пречек будет отправлен на выбранный ESC/POS принтер')}><Printer size={21}/></button>
-            <button className="pay-main" disabled={!total} onClick={() => setPaymentOpen(true)}>Оплатить</button>
-          </div>
-        </>}
-
-        {activeTab === 'client' && <div className="simple-tab"><Users size={42}/><h2>Клиент не выбран</h2><p>Позже здесь будут поиск клиента, бонусы и история покупок.</p><button>Добавить клиента</button></div>}
-        {activeTab === 'info' && <div className="simple-tab"><ReceiptText size={42}/><h2>Информация о чеке</h2><p>Кассир: Shant · Касса №1 · Смена открыта</p></div>}
-      </section>
-
-      <aside className={`catalog-side ${catalogOpen ? 'mobile-open' : ''}`}>
-        <div className="catalog-top"><div><span className="kicker">Каталог</span><h2>Все товары</h2></div><button className="catalog-close" onClick={() => setCatalogOpen(false)}><X size={22}/></button></div>
-        <div className="search-box"><Search size={18}/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск товара или штрихкода"/><ScanLine size={20}/></div>
-        <div className="category-strip">{categories.map((item) => <button key={item} className={category === item ? 'active' : ''} onClick={() => setCategory(item)}>{item}</button>)}</div>
-        <div className="product-cards">{filtered.map((product) => <button className="catalog-card" key={product.id} onClick={() => add(product)}>
-          <div className="product-visual">{product.emoji}</div><div><b>{product.name}</b><span>{fmt(product.price)}</span></div><em><Plus size={16}/></em>
-        </button>)}</div>
-      </aside>
-    </div>
-
-    <nav className="bottom-nav">
-      <button className="active"><ReceiptText size={21}/><span>Чек</span></button>
-      <button onClick={() => setCatalogOpen(true)}><Package size={21}/><span>Товары</span></button>
-      <button><BarChart3 size={21}/><span>Отчёты</span></button>
-      <button><Settings size={21}/><span>Ещё</span></button>
-    </nav>
-
-    {paymentOpen && <div className="payment-screen">
-      <div className="payment-sheet">
-        <div className="payment-toolbar"><button onClick={() => setPaymentOpen(false)}><ChevronLeft size={24}/> Отменить</button><span>Оплата</span><i/></div>
-        <div className="payment-content">
-          <p>Итого</p><h2>{fmt(total)}</h2><span className="payment-hint">Выберите способ оплаты</span>
-
-          <div className="payment-summary"><div><span>К оплате</span><b>{fmt(total)}</b></div></div>
-          <div className="payment-list">
-            <button className={paymentType === 'cash' ? 'selected' : ''} onClick={() => setPaymentType('cash')}><Banknote/><span>Наличными</span><b>{paymentType === 'cash' ? fmt(total) : '0 ֏'}</b></button>
-            <button className={paymentType === 'card' ? 'selected' : ''} onClick={() => setPaymentType('card')}><CreditCard/><span>Карточкой</span><b>{paymentType === 'card' ? fmt(total) : '0 ֏'}</b></button>
-            <button className={paymentType === 'qr' ? 'selected' : ''} onClick={() => setPaymentType('qr')}><QrCode/><span>IDRAM / QR</span><b>{paymentType === 'qr' ? fmt(total) : '0 ֏'}</b></button>
-            <button className={paymentType === 'mixed' ? 'selected' : ''} onClick={() => setPaymentType('mixed')}><WalletCards/><span>Смешанная</span><b>{paymentType === 'mixed' ? 'Настроить' : '0 ֏'}</b></button>
-          </div>
-
-          <label className="print-toggle"><span><Printer size={20}/> Напечатать чек</span><input type="checkbox" checked={receiptPrint} onChange={(e) => setReceiptPrint(e.target.checked)}/><i/></label>
-          <button className="confirm-pay" onClick={completePayment}>Оплатить {fmt(total)}</button>
-        </div>
-      </div>
-    </div>}
-
-    {success && <div className="success-overlay"><div><CheckCircle2 size={70}/><h2>Оплата успешна</h2><p>Чек №001042</p><strong>{fmt(total)}</strong><span>DEMO · фискализация будет подключена отдельно</span></div></div>}
-  </div>;
-}
-
+const PRODUCTS=[
+{id:1,name:'Американо',price:900,category:'Кофе',emoji:'☕'},{id:2,name:'Капучино',price:1200,category:'Кофе',emoji:'🥛'},{id:3,name:'Латте',price:1400,category:'Кофе',emoji:'🧋'},{id:4,name:'Вода',price:500,category:'Напитки',emoji:'💧'},{id:5,name:'Кола 0.5',price:700,category:'Напитки',emoji:'🥤'},{id:6,name:'Круассан',price:1000,category:'Еда',emoji:'🥐'},{id:7,name:'Сэндвич',price:2200,category:'Еда',emoji:'🥪'},{id:8,name:'Чизкейк',price:1800,category:'Десерты',emoji:'🍰'}];
+const seedTables=[
+{id:1,hall:'Main',status:'open',guests:2,total:8800,time:'00:24'},{id:2,hall:'Main',status:'free'},{id:3,hall:'Main',status:'precheck',guests:2,total:6200,time:'01:15'},{id:4,hall:'Main',status:'free'},{id:5,hall:'Main',status:'free'},{id:6,hall:'Main',status:'open',guests:4,total:12500,time:'00:48'},{id:7,hall:'Main',status:'reserved',time:'19:00'},{id:8,hall:'Main',status:'free'},{id:9,hall:'Main',status:'free'},
+{id:10,hall:'Терраса',status:'free'},{id:11,hall:'Терраса',status:'open',guests:3,total:7400,time:'00:31'},{id:12,hall:'Терраса',status:'free'},{id:20,hall:'VIP',status:'free'},{id:21,hall:'VIP',status:'reserved',time:'20:00'}];
+const fmt=v=>new Intl.NumberFormat('ru-RU').format(v||0)+' ֏';
+function App(){
+ const[tables,setTables]=useState(seedTables),[hall,setHall]=useState('Main'),[screen,setScreen]=useState('tables'),[tableId,setTableId]=useState(null),[newTable,setNewTable]=useState(null),[guests,setGuests]=useState(2),[cart,setCart]=useState({}),[query,setQuery]=useState(''),[category,setCategory]=useState('Все'),[catalogOpen,setCatalogOpen]=useState(false),[paymentOpen,setPaymentOpen]=useState(false),[paymentType,setPaymentType]=useState('cash'),[success,setSuccess]=useState(false),[serviceEnabled,setServiceEnabled]=useState(true);
+ const current=tables.find(t=>t.id===tableId),categories=useMemo(()=>['Все',...new Set(PRODUCTS.map(p=>p.category))],[]),filtered=PRODUCTS.filter(p=>(category==='Все'||p.category===category)&&(!query||p.name.toLowerCase().includes(query.toLowerCase()))),lines=Object.values(cart),subtotal=lines.reduce((s,i)=>s+i.qty*i.price,0),service=serviceEnabled?Math.round(subtotal*.1):0,total=subtotal+service;
+ const openTable=t=>{if(t.status==='free'){setNewTable(t);setGuests(2);return}setTableId(t.id);setGuests(t.guests||2);setCart({});setScreen('order')};
+ const createOrder=()=>{const id=newTable.id;setTables(ts=>ts.map(t=>t.id===id?{...t,status:'open',guests,total:0,time:'00:00'}:t));setTableId(id);setCart({});setNewTable(null);setScreen('order')};
+ const add=p=>setCart(c=>({...c,[p.id]:{...p,qty:(c[p.id]?.qty||0)+1}}));
+ const qty=(id,d)=>setCart(c=>{const n={...c},q=(n[id]?.qty||0)+d;if(q<=0)delete n[id];else n[id]={...n[id],qty:q};return n});
+ const doPrecheck=()=>{if(!total)return;setTables(ts=>ts.map(t=>t.id===tableId?{...t,status:'precheck',guests,total}:t));alert('Пречек отмечен. Реальную ESC/POS печать подключим к этому действию.')};
+ const pay=()=>{setPaymentOpen(false);setTables(ts=>ts.map(t=>t.id===tableId?{...t,status:'free',guests:null,total:null,time:null}:t));setSuccess(true);setTimeout(()=>{setSuccess(false);setCart({});setTableId(null);setScreen('tables')},1200)};
+ return <div className="cia-app"><header className="cia-topbar"><button className="top-icon"><Menu/></button><div className="cia-logo"><strong>CIA POS</strong><span>light</span></div><div className="online-state"><i/> Онлайн</div></header>
+ {screen==='tables'?<main className="floor"><div className="floor-head"><div><span className="kicker">Ресторан</span><h1>Выберите стол</h1></div><button className="new-order"><Plus/> Новый заказ</button></div><div className="hall-tabs">{['Main','Терраса','VIP'].map(h=><button className={hall===h?'active':''} onClick={()=>setHall(h)}>{h}</button>)}</div><div className="table-grid">{tables.filter(t=>t.hall===hall).map(t=><button key={t.id} onClick={()=>openTable(t)} className={'table-card '+t.status}><strong>{t.id}</strong>{t.status==='free'&&<span>Свободен</span>}{t.status==='open'&&<><span>{t.guests} гостя · {t.time}</span><b>{fmt(t.total)}</b></>}{t.status==='precheck'&&<><span>Пречек · {t.time}</span><b>{fmt(t.total)}</b></>}{t.status==='reserved'&&<><span>Бронь</span><b>{t.time}</b></>}</button>)}</div><div className="legend"><span><i className="free"/>Свободен</span><span><i className="open"/>Открыт заказ</span><span><i className="precheck"/>Пречек</span><span><i className="reserved"/>Бронь</span></div></main>:
+ <div className="workspace"><section className="receipt-side"><div className="order-toolbar"><button onClick={()=>setScreen('tables')}><ChevronLeft/> Столы</button><b>Стол {tableId}</b><span><Users size={18}/> {guests}</span></div><div className="receipt-tabs"><button className="active">Чек</button><button>Гости</button><button>Комментарий</button></div><div className="receipt-title-row"><div><span className="kicker">Открытый заказ</span><h1>Стол {tableId}</h1></div><button className="round-danger" onClick={()=>setCart({})}><Trash2/></button></div><div className="guest-card"><div className="guest-head"><span>ГОСТЬ 1</span><span>{lines.length} поз.</span></div>{lines.length===0?<div className="empty-check"><ShoppingBag/><b>Заказ пуст</b><span>Добавьте товары из меню</span></div>:lines.map(i=><div className="receipt-line" key={i.id}><div className="item-name"><div className="mini-art">{i.emoji}</div><div><b>{i.name}</b><small>{i.category}</small></div></div><div className="qty-stepper"><button onClick={()=>qty(i.id,-1)}><Minus/></button><b>{i.qty}</b><button onClick={()=>qty(i.id,1)}><Plus/></button></div><span className="unit-price">{fmt(i.price)}</span><b className="row-total">{fmt(i.price*i.qty)}</b></div>)}</div><button className="add-product" onClick={()=>setCatalogOpen(true)}><Plus/> Добавить товар</button><div className="bill-options"><label className="service-toggle"><span><b>Обслуживание 10%</b><small>Сервисный сбор</small></span><input type="checkbox" checked={serviceEnabled} onChange={e=>setServiceEnabled(e.target.checked)}/><i/></label></div><div className="totals-block"><div><span>Сумма</span><b>{fmt(subtotal)}</b></div>{serviceEnabled&&<div><span>Обслуживание 10%</span><b>{fmt(service)}</b></div>}<div className="to-pay"><span>Итого</span><strong>{fmt(total)}</strong></div></div><div className="checkout-row"><button className="square-action"><MoreHorizontal/></button><button className="precheck-main" disabled={!total} onClick={doPrecheck}><Printer/> Пречек</button><button className="pay-main" disabled={!total} onClick={()=>setPaymentOpen(true)}>Оплатить</button></div></section>
+ <aside className={'catalog-side '+(catalogOpen?'mobile-open':'')}><div className="catalog-top"><div><span className="kicker">Меню</span><h2>Все товары</h2></div><button className="catalog-close" onClick={()=>setCatalogOpen(false)}><X/></button></div><div className="search-box"><Search/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Поиск товара"/><ScanLine/></div><div className="category-strip">{categories.map(c=><button className={category===c?'active':''} onClick={()=>setCategory(c)}>{c}</button>)}</div><div className="product-cards">{filtered.map(p=><button className="catalog-card" onClick={()=>add(p)}><div className="product-visual">{p.emoji}</div><div><b>{p.name}</b><span>{fmt(p.price)}</span></div><em><Plus/></em></button>)}</div></aside></div>}
+ {newTable&&<div className="modal-bg"><div className="new-order-modal"><button className="modal-x" onClick={()=>setNewTable(null)}><X/></button><span className="kicker">Новый заказ</span><h2>Стол {newTable.id}</h2><p>Количество гостей</p><div className="guest-counter"><button onClick={()=>setGuests(Math.max(1,guests-1))}><Minus/></button><strong>{guests}</strong><button onClick={()=>setGuests(guests+1)}><Plus/></button></div><button className="create-order" onClick={createOrder}>Создать заказ</button></div></div>}
+ {paymentOpen&&<div className="payment-screen"><div className="payment-sheet"><div className="payment-toolbar"><button onClick={()=>setPaymentOpen(false)}><ChevronLeft/>Отменить</button><span>Оплата · Стол {tableId}</span><i/></div><div className="payment-content"><p>К оплате</p><h2>{fmt(total)}</h2><div className="payment-list"><button className={paymentType==='cash'?'selected':''} onClick={()=>setPaymentType('cash')}><Banknote/><span>Наличными</span><b>{paymentType==='cash'?fmt(total):'0 ֏'}</b></button><button className={paymentType==='card'?'selected':''} onClick={()=>setPaymentType('card')}><CreditCard/><span>Карточкой</span><b>{paymentType==='card'?fmt(total):'0 ֏'}</b></button><button className={paymentType==='qr'?'selected':''} onClick={()=>setPaymentType('qr')}><QrCode/><span>IDRAM / QR</span><b>{paymentType==='qr'?fmt(total):'0 ֏'}</b></button><button className={paymentType==='mixed'?'selected':''} onClick={()=>setPaymentType('mixed')}><WalletCards/><span>Смешанная</span><b>0 ֏</b></button></div><button className="confirm-pay" onClick={pay}>Оплатить {fmt(total)}</button></div></div></div>}
+ {success&&<div className="success-overlay"><div><CheckCircle2/><h2>Оплата успешна</h2><p>Стол освобождён</p></div></div>}
+ <nav className="bottom-nav"><button className={screen==='tables'?'active':''} onClick={()=>setScreen('tables')}><Armchair/><span>Столы</span></button><button onClick={()=>screen==='order'&&setCatalogOpen(true)}><Package/><span>Товары</span></button><button><BarChart3/><span>Отчёты</span></button><button><Settings/><span>Ещё</span></button></nav></div>}
 createRoot(document.getElementById('root')).render(<App/>);
