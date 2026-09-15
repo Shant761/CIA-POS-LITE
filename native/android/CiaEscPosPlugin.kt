@@ -81,6 +81,7 @@ class CiaEscPosPlugin : Plugin() {
                 val items: JSArray = call.getArray("items") ?: JSArray()
                 val subtotal = call.getDouble("subtotal", 0.0) ?: 0.0
                 val discount = call.getDouble("discount", 0.0) ?: 0.0
+                val serviceAmount = call.getDouble("serviceAmount", 0.0) ?: 0.0
                 val total = call.getDouble("total", 0.0) ?: 0.0
                 val footer = call.getString("footer") ?: "Շնորհակալություն · Спасибо"
 
@@ -104,6 +105,7 @@ class CiaEscPosPlugin : Plugin() {
                     items = receiptItems,
                     subtotal = subtotal,
                     discount = discount,
+                    serviceAmount = serviceAmount,
                     total = total,
                     footer = footer
                 )

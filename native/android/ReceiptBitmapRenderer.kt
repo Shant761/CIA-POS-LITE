@@ -45,6 +45,7 @@ object ReceiptBitmapRenderer {
         items: List<ReceiptItem>,
         subtotal: Double,
         discount: Double,
+        serviceAmount: Double,
         total: Double,
         footer: String
     ): Bitmap {
@@ -73,6 +74,7 @@ object ReceiptBitmapRenderer {
         b.line()
         if (subtotal > 0.0) b.keyValue("Сумма", formatMoney(subtotal), 22f)
         if (discount > 0.0) b.keyValue("Скидка", "-${formatMoney(discount)}", 22f)
+        if (serviceAmount > 0.0) b.keyValue("Обслуживание", formatMoney(serviceAmount), 22f)
         b.space(4)
         b.keyValue("ИТОГО", formatMoney(total), 32f, bold = true)
         b.center("AMD / ֏", 20f)
