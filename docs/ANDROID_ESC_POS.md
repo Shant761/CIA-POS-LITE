@@ -36,7 +36,8 @@ For normal LAN TCP printing no Bluetooth permission is required.
 
 1. Connect phone and printer to the same local network.
 2. Find printer IP, for example `192.168.1.50`.
-3. Use TCP port `9100` unless the printer uses another RAW port.
+3. Automatic discovery checks RAW ESC/POS ports `9100` through `9109` plus
+   any ports already saved in printer settings. Enter any other RAW port manually.
 4. From CIA POS printer settings, save the IP/port.
 5. Call `printTest()` from `src/services/escposPrinter.js`.
 6. Printer should initialize, print the CIA POS test ticket, feed paper and cut when enabled.

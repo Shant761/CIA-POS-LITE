@@ -21,14 +21,15 @@ const formatDateTime = (value = new Date()) => new Intl.DateTimeFormat('ru-RU', 
   year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
 }).format(value);
 
-export async function discoverPrinters({ port = 9100, timeoutMs = 220 } = {}) {
+export async function discoverPrinters({ ports = [], timeoutMs = 220 } = {}) {
   ensureNative();
-  const result = await CiaEscPos.discoverPrinters({ port: Number(port), timeoutMs: Number(timeoutMs) });
+  const normalizedPorts = [...new Set(ports.map(Number).filter((port) => Number.isInteger(port) && port > 0 && port <= 65535))];
+  const result = await CiaEscPos.discoverPrinters({ ports: normalizedPorts, timeoutMs: Number(timeoutMs) });
   return (result?.devices || []).map((device) => ({
     name: device.name || 'ESC/POS',
     ip: device.host,
     host: device.host,
-    port: Number(device.port || port),
+    port: Number(device.port || 9100),
     transport: device.transport || 'LAN',
     protocol: device.protocol || 'ESC/POS',
     verified: Boolean(device.verified),

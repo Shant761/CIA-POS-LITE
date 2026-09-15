@@ -19,10 +19,19 @@ class CiaEscPosPlugin : Plugin() {
     fun discoverPrinters(call: PluginCall) {
         executor.execute {
             try {
-                val port = call.getInt("port", 9100) ?: 9100
                 val timeoutMs = call.getInt("timeoutMs", 220) ?: 220
+                val ports = mutableListOf<Int>()
+                call.getInt("port")?.let(ports::add)
+                call.getArray("ports")?.let { requested ->
+                    for (i in 0 until requested.length()) {
+                        requested.optInt(i).takeIf { it in 1..65535 }?.let(ports::add)
+                    }
+                }
+                val scanPorts = (PrinterDiscoveryService.DEFAULT_RAW_PORTS + ports)
+                    .distinct()
+                    .take(32)
                 val service = PrinterDiscoveryService(context)
-                val found = service.scan(port = port, timeoutMs = timeoutMs.coerceIn(100, 1000))
+                val found = service.scan(ports = scanPorts, timeoutMs = timeoutMs.coerceIn(100, 1000))
                 val devices = JSArray()
                 found.forEach { printer ->
                     devices.put(

@@ -20,9 +20,10 @@ class PrinterDiscoveryService(private val context: Context) {
         val protocol: String = "ESC/POS"
     )
 
-    fun scan(port: Int = 9100, timeoutMs: Int = 220): List<Candidate> {
+    fun scan(ports: Collection<Int> = DEFAULT_RAW_PORTS, timeoutMs: Int = 220): List<Candidate> {
         val link = currentIpv4Link() ?: return emptyList()
         val local = link.address.hostAddress ?: return emptyList()
+        val scanPorts = ports.filter { it in 1..65535 }.distinct().ifEmpty { DEFAULT_RAW_PORTS }
 
         // Most POS networks are /24. For broader networks we intentionally scan only
         // the current /24 to avoid probing thousands of hosts from a checkout device.
@@ -31,10 +32,11 @@ class PrinterDiscoveryService(private val context: Context) {
         val hosts = (1..254).filter { it != localLast }.map { "$prefix.$it" }
 
         val found = Collections.synchronizedList(mutableListOf<Candidate>())
-        val pool = Executors.newFixedThreadPool(32)
-        val latch = CountDownLatch(hosts.size)
+        val endpoints = hosts.flatMap { host -> scanPorts.map { port -> host to port } }
+        val pool = Executors.newFixedThreadPool(64)
+        val latch = CountDownLatch(endpoints.size)
 
-        hosts.forEach { host ->
+        endpoints.forEach { (host, port) ->
             pool.execute {
                 try {
                     Socket().use { socket ->
@@ -49,9 +51,10 @@ class PrinterDiscoveryService(private val context: Context) {
             }
         }
 
-        latch.await(12, TimeUnit.SECONDS)
+        latch.await(20, TimeUnit.SECONDS)
         pool.shutdownNow()
-        return found.sortedBy { addressToInt(it.host) }
+        return found.distinctBy { it.host to it.port }
+            .sortedWith(compareBy<Candidate> { addressToInt(it.host) }.thenBy { it.port })
     }
 
     private fun currentIpv4Link(): LinkAddress? {
@@ -68,5 +71,9 @@ class PrinterDiscoveryService(private val context: Context) {
 
     private fun addressToInt(host: String): Long = host.split('.').fold(0L) { acc, part ->
         (acc shl 8) + (part.toLongOrNull() ?: 0L)
+    }
+
+    companion object {
+        val DEFAULT_RAW_PORTS: List<Int> = (9100..9109).toList()
     }
 }
