@@ -1,0 +1,8 @@
+{
+  "appId": "am.ciasoft.poslite",
+  "appName": "CIA POS Lite",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false
+  }
+}

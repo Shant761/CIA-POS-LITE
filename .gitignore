@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.idea/
+*.iml
+
+# Local Android and build tooling
+work-*
+.android/
+.gradle/

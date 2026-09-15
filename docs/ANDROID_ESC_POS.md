@@ -6,43 +6,21 @@ CIA POS React UI -> Capacitor Android -> `CiaEscPos` native plugin -> TCP socket
 
 The browser/PWA build stays usable, but raw TCP printing is intentionally available only in the native Android build.
 
-## Create the Android project
+## Build the Android APK
 
 ```bash
 npm install
 npm run build
-npm run android:add
 npm run cap:sync
+cd android
+./gradlew assembleDebug
 ```
 
-Then copy:
+Use JDK 21 and Android SDK API 36. The APK is written to
+`android/app/build/outputs/apk/debug/app-debug.apk`.
 
-`native/android/CiaEscPosPlugin.kt`
-
-into:
-
-`android/app/src/main/java/am/ciasoft/poslite/CiaEscPosPlugin.kt`
-
-## Register the local plugin
-
-Open `android/app/src/main/java/am/ciasoft/poslite/MainActivity.java` (or `.kt`) and register `CiaEscPosPlugin`.
-
-Java example:
-
-```java
-package am.ciasoft.poslite;
-
-import android.os.Bundle;
-import com.getcapacitor.BridgeActivity;
-
-public class MainActivity extends BridgeActivity {
-  @Override
-  public void onCreate(Bundle savedInstanceState) {
-    registerPlugin(CiaEscPosPlugin.class);
-    super.onCreate(savedInstanceState);
-  }
-}
-```
+The Android project, native raster renderer, LAN printer discovery and
+`CiaEscPos` plugin registration are already included in the repository.
 
 ## Android permission
 
@@ -65,6 +43,7 @@ For normal LAN TCP printing no Bluetooth permission is required.
 
 ## Important
 
-Current native sample prints through CP866. It is suitable for the first network/ESC-POS test and Cyrillic-capable printers. Armenian must be implemented as raster/bitmap printing so CIA POS does not depend on printer code pages.
+Receipts are rendered to a bitmap and sent as ESC/POS raster data, so Armenian
+and Cyrillic text do not depend on printer code pages.
 
 Do not expose port 9100 to the public internet. Printer and Android POS should stay on a trusted local network.
