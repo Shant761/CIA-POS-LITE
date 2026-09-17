@@ -1,0 +1,76 @@
+const PRODUCTS_KEY='cia-pos-products-v1';
+const CATEGORIES_KEY='cia-pos-categories-v1';
+
+export const DEFAULT_CATEGORIES=['Кофе','Напитки','Еда','Десерты'];
+
+export const DEFAULT_PRODUCTS=[
+ {id:'p-1',productCode:'1',name:'Американо',price:900,category:'Кофе',emoji:'☕',barcode:'',adgCode:'',unit:'հատ',department:1,markingRequired:false,active:true},
+ {id:'p-2',productCode:'2',name:'Капучино',price:1200,category:'Кофе',emoji:'🥛',barcode:'',adgCode:'',unit:'հատ',department:1,markingRequired:false,active:true},
+ {id:'p-3',productCode:'3',name:'Латте',price:1400,category:'Кофе',emoji:'🧋',barcode:'',adgCode:'',unit:'հատ',department:1,markingRequired:false,active:true},
+ {id:'p-4',productCode:'4',name:'Вода',price:500,category:'Напитки',emoji:'💧',barcode:'',adgCode:'2202100000',unit:'հատ',department:1,markingRequired:false,active:true},
+ {id:'p-5',productCode:'5',name:'Кола 0.5',price:700,category:'Напитки',emoji:'🥤',barcode:'',adgCode:'2202100000',unit:'հատ',department:1,markingRequired:false,active:true},
+ {id:'p-6',productCode:'6',name:'Круассан',price:1000,category:'Еда',emoji:'🥐',barcode:'',adgCode:'',unit:'հատ',department:1,markingRequired:false,active:true},
+ {id:'p-7',productCode:'7',name:'Сэндвич',price:2200,category:'Еда',emoji:'🥪',barcode:'',adgCode:'',unit:'հատ',department:1,markingRequired:false,active:true},
+ {id:'p-8',productCode:'8',name:'Чизкейк',price:1800,category:'Десерты',emoji:'🍰',barcode:'',adgCode:'',unit:'հատ',department:1,markingRequired:false,active:true}
+];
+
+const readJson=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key)||'null')??fallback}catch{return fallback}};
+const writeJson=(key,value)=>localStorage.setItem(key,JSON.stringify(value));
+const uid=()=>globalThis.crypto?.randomUUID?.()||`product-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+
+export function getProducts(){
+ const existing=readJson(PRODUCTS_KEY,null);
+ if(existing)return existing;
+ writeJson(PRODUCTS_KEY,DEFAULT_PRODUCTS);
+ return DEFAULT_PRODUCTS;
+}
+
+export function getCategories(){
+ const existing=readJson(CATEGORIES_KEY,null);
+ if(existing)return existing;
+ writeJson(CATEGORIES_KEY,DEFAULT_CATEGORIES);
+ return DEFAULT_CATEGORIES;
+}
+
+export function saveProduct(input){
+ const products=getProducts();
+ const now=new Date().toISOString();
+ const product={
+  id:input.id||uid(),
+  productCode:String(input.productCode||'').trim(),
+  name:String(input.name||'').trim(),
+  category:String(input.category||'').trim()||'Без категории',
+  price:Number(input.price||0),
+  barcode:String(input.barcode||'').trim(),
+  adgCode:String(input.adgCode||'').trim(),
+  unit:String(input.unit||'հատ').trim(),
+  department:Number(input.department||1),
+  markingRequired:Boolean(input.markingRequired),
+  active:input.active!==false,
+  emoji:input.emoji||'📦',
+  createdAt:input.createdAt||now,
+  updatedAt:now
+ };
+ if(!product.productCode)throw new Error('Код товара обязателен для HDM.');
+ if(product.productCode.length>50)throw new Error('Код товара HDM: максимум 50 символов.');
+ if(!product.name)throw new Error('Название товара обязательно.');
+ if(product.name.length>50)throw new Error('Название HDM: максимум 50 символов.');
+ if(!product.unit)throw new Error('Единица измерения обязательна.');
+ if(!Number.isFinite(product.price)||product.price<0)throw new Error('Некорректная цена.');
+ const duplicate=products.find(p=>p.id!==product.id&&(p.productCode===product.productCode||(product.barcode&&p.barcode===product.barcode)));
+ if(duplicate)throw new Error('Такой код товара или штрихкод уже используется.');
+ const next=products.some(p=>p.id===product.id)?products.map(p=>p.id===product.id?product:p):[...products,product];
+ writeJson(PRODUCTS_KEY,next);
+ const categories=getCategories();
+ if(!categories.includes(product.category))writeJson(CATEGORIES_KEY,[...categories,product.category]);
+ return product;
+}
+
+export function deleteProduct(id){writeJson(PRODUCTS_KEY,getProducts().filter(p=>p.id!==id));}
+export function findProductByCode(code){const value=String(code||'').trim();return getProducts().find(p=>p.active&&(p.barcode===value||p.productCode===value))||null;}
+
+// eMark/Data Matrix is intentionally transaction data, not a Product field.
+// A marked physical unit can have a unique eMark even when its catalog product is the same.
+export function createSaleItem(product,{qty=1,eMarks=[]}={}){
+ return {productId:product.id,productCode:product.productCode,productName:product.name,adgCode:product.adgCode,unit:product.unit,department:product.department,price:product.price,qty,eMarks:[...eMarks]};
+}
