@@ -1,13 +1,17 @@
 const MOVEMENTS_KEY='cia-pos-stock-movements';
 const SUPPLIES_KEY='cia-pos-supplies';
 const SALE_REFS_KEY='cia-pos-stock-sale-refs';
+const STOCK_SETTINGS_KEY='cia-pos-stock-settings';
 const read=(key,f=[])=>{try{return JSON.parse(localStorage.getItem(key)||'null')??f}catch{return f}};
 const write=(key,value)=>localStorage.setItem(key,JSON.stringify(value));
 const uid=prefix=>`${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
 export const getMovements=()=>read(MOVEMENTS_KEY);
 export const getSupplies=()=>read(SUPPLIES_KEY);
+export const getStockSettings=()=>read(STOCK_SETTINGS_KEY,{allowNegative:false,lowStockThreshold:3});
+export function setStockSettings(patch={}){const next={...getStockSettings(),...patch};write(STOCK_SETTINGS_KEY,next);window.dispatchEvent(new Event('cia-pos-stock-settings-changed'));return next}
 export const getStockMap=()=>getMovements().reduce((acc,m)=>{acc[m.productId]=(acc[m.productId]||0)+Number(m.qty||0);return acc},{});
 export const getStock=productId=>Number(getStockMap()[productId]||0);
+export function canTakeStock(productId,qty=1,alreadyInCart=0){const settings=getStockSettings();if(settings.allowNegative)return{ok:true,available:getStock(productId)};const available=getStock(productId),requested=Number(alreadyInCart||0)+Number(qty||0);return{ok:requested<=available,available,requested}}
 export function addMovement({productId,productName='',type,qty,purchasePrice=0,reference='',comment='',meta=null}){const movement={id:uid('mov'),createdAt:new Date().toISOString(),productId,productName,type,qty:Number(qty)||0,purchasePrice:Number(purchasePrice)||0,reference,comment,meta};const list=[movement,...getMovements()];write(MOVEMENTS_KEY,list);window.dispatchEvent(new Event('cia-pos-stock-changed'));return movement}
 export function createSupply({supplier='',documentNo='',items=[]}){if(!items.length)throw new Error('Добавьте товары в поставку');const id=uid('sup'),createdAt=new Date().toISOString();const normalized=items.map(i=>({...i,qty:Number(i.qty)||0,purchasePrice:Number(i.purchasePrice)||0})).filter(i=>i.productId&&i.qty>0);if(!normalized.length)throw new Error('Укажите количество');const total=normalized.reduce((s,i)=>s+i.qty*i.purchasePrice,0);const supply={id,createdAt,supplier:supplier.trim(),documentNo:documentNo.trim()||id,items:normalized,total,status:'posted'};write(SUPPLIES_KEY,[supply,...getSupplies()]);normalized.forEach(i=>addMovement({productId:i.productId,productName:i.productName,type:'SUPPLY',qty:i.qty,purchasePrice:i.purchasePrice,reference:supply.documentNo,comment:supplier}));return supply}
 export function recordStockSale({items=[],reference='',mode='shop',tableId=null}){const saleRef=String(reference||uid('sale'));const refs=read(SALE_REFS_KEY,[]);if(refs.includes(saleRef))return false;const normalized=items.map(i=>({productId:i.id,productName:i.name,qty:Number(i.qty)||0,price:Number(i.price)||0})).filter(i=>i.productId&&i.qty>0);if(!normalized.length)return false;normalized.forEach(i=>addMovement({productId:i.productId,productName:i.productName,type:'SALE',qty:-i.qty,reference:saleRef,comment:mode==='restaurant'&&tableId!=null?`Стол ${tableId}`:'Продажа',meta:{salePrice:i.price}}));write(SALE_REFS_KEY,[saleRef,...refs].slice(0,5000));return true}
