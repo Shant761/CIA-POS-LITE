@@ -1,3 +1,5 @@
+import{recordStockSale}from'./stockStore';
+
 const ACTIVE_KEY='cia-pos-active-shift';
 const HISTORY_KEY='cia-pos-shift-history';
 
@@ -32,6 +34,7 @@ export function recordSale({total=0,subtotal=0,serviceRate=0,serviceAmount=0,dis
  const sale={id:uid('SALE'),createdAt:new Date().toISOString(),subtotal:money(subtotal),serviceRate:money(serviceRate),serviceAmount:money(serviceAmount),discount:money(discount),total:amount,paymentType,payments:normalized,mode,tableId,items:items.map(i=>({id:i.id,name:i.name,qty:i.qty,price:i.price}))};
  const next={...shift,salesCount:shift.salesCount+1,gross:shift.gross+amount,cash:shift.cash+normalized.cash,card:shift.card+normalized.card,qr:shift.qr+normalized.qr,mixed:paymentType==='mixed'?(shift.mixed||0)+amount:shift.mixed||0,sales:[...shift.sales,sale]};
  writeJson(ACTIVE_KEY,next);
+ recordStockSale({items:sale.items,reference:sale.id,mode:sale.mode,tableId:sale.tableId});
  return next;
 }
 
