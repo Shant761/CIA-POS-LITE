@@ -1,6 +1,8 @@
 import React,{useEffect,useMemo,useState}from'react';
-import{ChevronLeft,Printer,Plus,RefreshCw,Wifi,CheckCircle2,AlertCircle,Trash2}from'lucide-react';
+import{ChevronLeft,Printer,Plus,RefreshCw,Wifi,CheckCircle2,AlertCircle,Trash2,Package,Settings}from'lucide-react';
 import{discoverPrinters,isNativePrinterAvailable,printTest}from'./services/escposPrinter';
+import ProductBackoffice from'./ProductBackoffice';
+import'./product-backoffice.css';
 
 const STORAGE_KEY='cia-pos-printers';
 const blankPrinter=()=>({id:`printer-${Date.now()}`,name:'ESC/POS принтер',ip:'',port:9100,paper:'80',autoCut:true,precheck:true,bar:false,kitchen:false,verified:false});
@@ -8,6 +10,13 @@ const readPrinters=()=>{try{return JSON.parse(localStorage.getItem(STORAGE_KEY)|
 const persist=list=>localStorage.setItem(STORAGE_KEY,JSON.stringify(list));
 
 export default function PrinterSettings({onBack}){
+ const[page,setPage]=useState('home');
+ if(page==='products')return <ProductBackoffice onBack={()=>setPage('home')}/>;
+ if(page==='printers')return <PrinterManager onBack={()=>setPage('home')}/>;
+ return <div className="devices-page"><div className="devices-toolbar"><button className="back-button" onClick={onBack}><ChevronLeft/> Назад</button><h1>Ещё</h1><span className="toolbar-spacer"/></div><div className="devices-card"><div className="section-label">УПРАВЛЕНИЕ</div><button className="device-row" onClick={()=>setPage('products')}><span className="device-icon"><Package/></span><span className="device-info"><strong>Товары</strong><span>Каталог, цены, штрихкоды, ԱՏԳ и маркировка</span></span></button><button className="device-row" onClick={()=>setPage('printers')}><span className="device-icon"><Printer/></span><span className="device-info"><strong>Принтеры</strong><span>ESC/POS · LAN · роли печати</span></span></button><div className="device-row"><span className="device-icon"><Settings/></span><span className="device-info"><strong>Настройки</strong><span>Дополнительные параметры будут добавлены позже</span></span></div></div></div>;
+}
+
+function PrinterManager({onBack}){
  const[printers,setPrinters]=useState(readPrinters),[selectedId,setSelectedId]=useState(null),[draft,setDraft]=useState(null),[searching,setSearching]=useState(false),[testing,setTesting]=useState(false),[notice,setNotice]=useState('');
  const native=isNativePrinterAvailable();
  const selected=useMemo(()=>printers.find(p=>p.id===selectedId)||null,[printers,selectedId]);
