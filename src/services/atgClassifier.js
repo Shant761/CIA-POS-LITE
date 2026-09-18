@@ -1,5 +1,5 @@
 // Local ATGAA classifier search helpers.
-// Classifier data is loaded from local JSON files.
+// Classifier data is loaded from the full local JSON file.
 
 let classifierPromise = null;
 
@@ -12,13 +12,11 @@ const normalize = value => String(value || '')
 
 export async function loadAtgClassifier() {
   if (!classifierPromise) {
-    classifierPromise = Promise.all([
-      fetch('/data/goods-classifier-hy.json').then(response => {
+    classifierPromise = fetch('/data/goods-classifier-hy%20(1).json')
+      .then(response => {
         if (!response.ok) throw new Error(`ATG classifier load failed: ${response.status}`);
         return response.json();
-      }),
-      fetch('/data/goods-classifier-tobacco.json').then(response => response.ok ? response.json() : {}),
-    ]).then(([base, tobacco]) => ({ ...base, ...tobacco }))
+      })
       .then(data => Object.entries(data).map(([code, name]) => ({
         code: String(code),
         name: String(name || ''),
