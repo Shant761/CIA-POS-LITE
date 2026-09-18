@@ -1,6 +1,7 @@
 import React,{useEffect,useState}from'react';
 import{Search,X,Check}from'lucide-react';
 import{loadAtgClassifier,searchAtg}from'./services/atgClassifier';
+import'./atg-picker.css';
 
 export default function AtgPicker({value='',onSelect,onClose}){
  const[query,setQuery]=useState(value||''),[items,setItems]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState('');
