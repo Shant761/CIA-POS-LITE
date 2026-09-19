@@ -1,4 +1,4 @@
-import{recordStockSale}from'./stockStore';
+import{recordStockSale}from'./stockStore.js';
 
 const ACTIVE_KEY='cia-pos-active-shift';
 const HISTORY_KEY='cia-pos-shift-history';
