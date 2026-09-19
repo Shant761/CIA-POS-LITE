@@ -11,7 +11,7 @@ on:
       - "src/**"
       - "package.json"
       - "pnpm-lock.yaml"
-      - "capacitor.config.json"
+      - "capacitor.config.ts"
       - ".github/workflows/android-apk.yml"
 
 permissions:
