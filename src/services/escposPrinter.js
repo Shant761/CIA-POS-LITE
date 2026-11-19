@@ -79,6 +79,15 @@ export async function printPrecheck(printer, sale) {
   });
 }
 
+export async function printKitchenOrder(printer, order) {
+  ensureNative();
+  const target = normalizePrinter(printer);
+  if (!target.host) throw new Error('Укажите IP-адрес кухонного принтера');
+  const items = (order?.items || []).map((item) => ({ name: String(item.name || ''), qty: Number(item.qty || 0) })).filter((item) => item.name && item.qty > 0);
+  if (!items.length) throw new Error('Нет новых блюд для отправки на кухню');
+  return CiaEscPos.printKitchenOrder({ ...target, title: String(order?.businessName || 'CIA POS LITE'), table: String(order?.table ?? ''), guests: Math.max(1, Number(order?.guests || 1)), ticketNo: String(order?.ticketNo || ''), dateTime: String(order?.dateTime || formatDateTime()), items, isCopy: Boolean(order?.isCopy) });
+}
+
 export function isNativePrinterAvailable() {
   return Capacitor.isNativePlatform();
 }
