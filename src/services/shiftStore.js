@@ -18,21 +18,25 @@ export function openShift({cashier='Касса №1',openingCash=0}={}){
   id:uid('SHIFT'),
   number:Number(localStorage.getItem('cia-pos-shift-seq')||0)+1,
   status:'open',cashier,openingCash:Number(openingCash||0),openedAt:new Date().toISOString(),
-  salesCount:0,gross:0,cash:0,card:0,qr:0,mixed:0,refunds:0,refundAmount:0,sales:[]
+  salesCount:0,gross:0,cash:0,card:0,qr:0,mixed:0,tips:0,refunds:0,refundAmount:0,sales:[]
  };
  localStorage.setItem('cia-pos-shift-seq',String(shift.number));
  writeJson(ACTIVE_KEY,shift);
  return shift;
 }
 
-export function recordSale({total=0,subtotal=0,serviceRate=0,serviceAmount=0,discount=0,paymentType='cash',payments=null,mode='shop',items=[],tableId=null}={}){
+export function recordSale({total=0,subtotal=0,serviceRate=0,serviceAmount=0,discount=0,paymentType='cash',payments=null,tips=0,mode='shop',items=[],tableId=null}={}){
  const shift=getActiveShift();
  if(!shift||shift.status!=='open')throw new Error('Смена закрыта. Сначала откройте смену.');
  const amount=money(total),parts=payments||{[paymentType]:amount};
  const normalized={cash:money(parts.cash||0),card:money(parts.card||0),qr:money(parts.qr||0)};
+ const usedMethods=Object.values(normalized).filter(value=>value>0).length;
+ if(usedMethods>2)throw new Error('В одной продаже можно использовать максимум два способа оплаты.');
+ if(paymentType==='mixed'&&usedMethods!==2)throw new Error('Для смешанной оплаты выберите ровно два способа.');
  if(Math.abs(Object.values(normalized).reduce((s,v)=>s+v,0)-amount)>0.001)throw new Error('Сумма способов оплаты должна совпадать с итогом чека.');
- const sale={id:uid('SALE'),createdAt:new Date().toISOString(),subtotal:money(subtotal),serviceRate:money(serviceRate),serviceAmount:money(serviceAmount),discount:money(discount),total:amount,paymentType,payments:normalized,mode,tableId,items:items.map(i=>({id:i.id,name:i.name,qty:i.qty,price:i.price}))};
- const next={...shift,salesCount:shift.salesCount+1,gross:shift.gross+amount,cash:shift.cash+normalized.cash,card:shift.card+normalized.card,qr:shift.qr+normalized.qr,mixed:paymentType==='mixed'?(shift.mixed||0)+amount:shift.mixed||0,sales:[...shift.sales,sale]};
+ const tipAmount=money(tips);
+ const sale={id:uid('SALE'),createdAt:new Date().toISOString(),subtotal:money(subtotal),serviceRate:money(serviceRate),serviceAmount:money(serviceAmount),discount:money(discount),total:amount,tips:tipAmount,paymentType,payments:normalized,mode,tableId,items:items.map(i=>({id:i.id,name:i.name,qty:i.qty,price:i.price}))};
+ const next={...shift,salesCount:shift.salesCount+1,gross:shift.gross+amount,cash:shift.cash+normalized.cash,card:shift.card+normalized.card,qr:shift.qr+normalized.qr,mixed:paymentType==='mixed'?(shift.mixed||0)+amount:shift.mixed||0,tips:Number(shift.tips||0)+tipAmount,sales:[...shift.sales,sale]};
  writeJson(ACTIVE_KEY,next);
  recordStockSale({items:sale.items,reference:sale.id,mode:sale.mode,tableId:sale.tableId});
  return next;

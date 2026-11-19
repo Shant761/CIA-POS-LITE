@@ -30,6 +30,40 @@ test('rejects a payment split that does not equal the receipt total',()=>{
   assert.throws(()=>store.recordSale({total:1000,paymentType:'mixed',payments:{cash:200,card:700}}),/совпадать/);
 });
 
+
+test('supports IDRAM and card as the two mixed payment methods and stores tips separately',()=>{
+  store.openShift();
+  const next=store.recordSale({total:10000,paymentType:'mixed',payments:{cash:0,card:6500,qr:3500},tips:500,items:[]});
+  assert.equal(next.card,6500);
+  assert.equal(next.qr,3500);
+  assert.equal(next.cash,0);
+  assert.equal(next.tips,500);
+  assert.equal(next.sales[0].tips,500);
+  assert.equal(next.gross,10000);
+});
+
+test('supports cash and IDRAM as the two mixed payment methods',()=>{
+  store.openShift();
+  const next=store.recordSale({total:9000,paymentType:'mixed',payments:{cash:2000,card:0,qr:7000},items:[]});
+  assert.equal(next.cash,2000);
+  assert.equal(next.qr,7000);
+});
+
+test('rejects mixed payment with three methods',()=>{
+  store.openShift();
+  assert.throws(()=>store.recordSale({total:1000,paymentType:'mixed',payments:{cash:300,card:300,qr:400}}),/максимум два/);
+});
+
+test('rejects mixed payment unless exactly two methods have positive amounts',()=>{
+  store.openShift();
+  assert.throws(()=>store.recordSale({total:1000,paymentType:'mixed',payments:{cash:1000,card:0,qr:0}}),/ровно два/);
+});
+
+test('rejects negative tips',()=>{
+  store.openShift();
+  assert.throws(()=>store.recordSale({total:1000,paymentType:'cash',tips:-10}),/Некорректная сумма/);
+});
+
 test('keeps history beyond 120 shifts',()=>{
   for(let i=0;i<121;i++){store.openShift();store.closeShift()}
   assert.equal(store.getShiftHistory().length,121);
