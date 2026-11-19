@@ -87,6 +87,26 @@ object ReceiptBitmapRenderer {
         return b.build()
     }
 
+    fun renderKitchenTicket(
+        paperMm: Int, title: String, table: String, guests: Int, ticketNo: String,
+        dateTime: String, items: List<Pair<String, Double>>, isCopy: Boolean = false
+    ): Bitmap {
+        val b = Builder(widthForPaper(paperMm))
+        b.center(title, 30f, bold = true)
+        b.center(if (isCopy) "КОПИЯ · КУХНЯ" else "ЗАКАЗ НА КУХНЮ", 26f, bold = true)
+        b.space(6); b.line()
+        b.center("СТОЛ $table", 38f, bold = true)
+        b.keyValue("Гостей: $guests", "№ $ticketNo", 22f, bold = true)
+        b.left(dateTime, 20f); b.line()
+        items.forEach { (name, qty) ->
+            b.left(name, 28f, bold = true)
+            b.left("      × ${formatQty(qty)}", 27f, bold = true)
+            b.space(8)
+        }
+        b.line(); b.center("КОНЕЦ ЗАКАЗА", 22f, bold = true); b.space(24)
+        return b.build()
+    }
+
     private fun formatMoney(v: Double) = String.format("%,.0f", v).replace(',', ' ')
     private fun formatQty(v: Double) = if (v % 1.0 == 0.0) String.format("%.0f", v) else String.format("%.2f", v)
 
