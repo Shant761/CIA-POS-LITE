@@ -128,6 +128,33 @@ class CiaEscPosPlugin : Plugin() {
         }
     }
 
+    @PluginMethod
+    fun printKitchenOrder(call: PluginCall) {
+        executor.execute {
+            try {
+                val host = call.getString("host") ?: throw IllegalArgumentException("Printer host is required")
+                val port = call.getInt("port", 9100) ?: 9100
+                val paper = call.getInt("paper", 80) ?: 80
+                val autoCut = call.getBoolean("autoCut", true) ?: true
+                val items: JSArray = call.getArray("items") ?: JSArray()
+                val ticketItems = mutableListOf<Pair<String, Double>>()
+                for (i in 0 until items.length()) {
+                    val item = items.getJSONObject(i)
+                    ticketItems += item.optString("name", "Блюдо") to item.optDouble("qty", 0.0)
+                }
+                require(ticketItems.isNotEmpty()) { "Kitchen ticket has no items" }
+                val bitmap = ReceiptBitmapRenderer.renderKitchenTicket(
+                    paperMm = paper, title = call.getString("title") ?: "CIA POS LITE",
+                    table = call.getString("table") ?: "—", guests = call.getInt("guests", 1) ?: 1,
+                    ticketNo = call.getString("ticketNo") ?: "", dateTime = call.getString("dateTime") ?: "",
+                    items = ticketItems, isCopy = call.getBoolean("isCopy", false) ?: false
+                )
+                try { send(host, port, EscPosRasterEncoder.encode(bitmap, autoCut)) } finally { bitmap.recycle() }
+                call.resolve(JSObject().put("ok", true).put("mode", "kitchen"))
+            } catch (e: Exception) { call.reject(e.message ?: "Kitchen print failed", e) }
+        }
+    }
+
     private fun send(host: String, port: Int, payload: ByteArray) {
         Socket().use { socket ->
             socket.connect(InetSocketAddress(host, port), 4000)
