@@ -68,3 +68,31 @@ test('keeps history beyond 120 shifts',()=>{
   for(let i=0;i<121;i++){store.openShift();store.closeShift()}
   assert.equal(store.getShiftHistory().length,121);
 });
+
+
+const split=await import('../src/services/paymentSplit.js');
+
+test('supports cash plus card with automatic remainder',()=>{
+ const result=split.updatePaymentSplit({cash:9900,card:0,qr:0},'card','3000',9900);
+ assert.deepEqual(result,{cash:6900,card:3000,qr:0});
+ assert.equal(split.isPaymentSplitValid(result,9900),true);
+});
+
+test('supports cash plus IDRAM with automatic remainder',()=>{
+ const result=split.updatePaymentSplit({cash:9900,card:0,qr:0},'qr','2500',9900);
+ assert.deepEqual(result,{cash:7400,card:0,qr:2500});
+ assert.equal(split.isPaymentSplitValid(result,9900),true);
+});
+
+test('supports card plus IDRAM after clearing cash',()=>{
+ const cardOnly=split.updatePaymentSplit({cash:9900,card:0,qr:0},'cash','0',9900);
+ const result=split.updatePaymentSplit(cardOnly,'qr','3500',9900);
+ assert.deepEqual(result,{cash:0,card:6400,qr:3500});
+ assert.equal(split.isPaymentSplitValid(result,9900),true);
+});
+
+test('rejects underpaid, overpaid and three-method splits',()=>{
+ assert.equal(split.isPaymentSplitValid({cash:4000,card:0,qr:0},4400),false);
+ assert.equal(split.isPaymentSplitValid({cash:5000,card:0,qr:0},4400),false);
+ assert.equal(split.isPaymentSplitValid({cash:1000,card:1000,qr:2400},4400),false);
+});
